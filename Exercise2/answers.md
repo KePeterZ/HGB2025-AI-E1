@@ -138,3 +138,118 @@ Debezium CDC with Kafka provides a **scalable, reliable, and real-time data stre
 * Not suitable for high-frequency or real-time use cases
 * Polling would not scale well with many consumers
 * Acceptable and optimal for the given constraints
+
+Below is a **concise, bullet-point based answer for Activity 3**, written in the same **assignment-style** as Activities 1 and 2.
+
+---
+
+# Activity 3 — High-Scale Fraud Detection System
+
+## Part 1 — Architectural Choice
+
+**Chosen architecture:**
+**PostgreSQL (OLTP) → Debezium CDC → Kafka → Multiple independent consumer agents**
+
+**Rationale:**
+
+* PostgreSQL remains the **system of record** with strong consistency
+* Debezium captures database changes **without polling**
+* Kafka enables **high-throughput, low-latency event streaming**
+* Multiple fraud detection agents can consume the same data independently
+* Near real-time processing is required
+* Decouples data ingestion from fraud logic
+
+---
+
+## Part 2 — Consumer Implementation (Conceptual)
+
+**Data flow:**
+
+* Fraud transactions are written at very high rate to PostgreSQL
+* Debezium streams row-level changes to Kafka topics
+* Each fraud detection agent:
+
+  * Subscribes to the Kafka CDC topic
+  * Maintains in-memory state
+  * Applies its own detection logic
+  * Produces alerts or logs results
+
+**Agents implemented:**
+
+* **Agent 1:** User spending behavior anomaly detection
+* **Agent 2:** Velocity + transaction amount scoring
+
+**Key design points:**
+
+* Each agent runs as a **standalone Kafka consumer**
+* Agents use **separate consumer groups**
+* Failure of one agent does not affect others
+* New agents can be added without touching PostgreSQL
+
+---
+
+## Part 3 — Architecture Discussion
+
+### Resource Efficiency
+
+* OLTP database is protected from analytical load
+* Kafka efficiently handles high-throughput ingestion
+* Consumers scale horizontally
+* In-memory state kept bounded (sliding windows, capped history)
+
+### Operability
+
+* Clear separation of responsibilities
+* Kafka offsets allow replay and recovery
+* Easy to monitor lag, throughput, and consumer health
+* Fault isolation between producers and consumers
+
+### Maintainability
+
+* Fraud logic is isolated per agent
+* Each agent can evolve independently
+* Supports different fraud models and heuristics
+* Enables gradual rollout of new detection strategies
+
+### Deployment Complexity
+
+* Higher than simple batch or JDBC polling
+* Requires Kafka, Kafka Connect, and Debezium
+* Complexity justified by scale and real-time requirements
+
+### Performance & Scalability
+
+* Supports hundreds of thousands of events per second
+* Low latency compared to batch ingestion
+* Scales with:
+
+  * More Kafka partitions
+  * More consumer instances
+* Handles increasing data volume without degrading OLTP performance
+
+---
+
+## Part 4 — Comparison with Spark JDBC (Previous Exercise)
+
+### CDC + Kafka (This Architecture)
+
+* Near real-time processing
+* Event-driven and continuous
+* Multiple independent consumers
+* Low latency
+* Better suited for fraud detection
+* More complex infrastructure
+
+### Spark JDBC Polling
+
+* Batch-oriented
+* Higher latency
+* Heavy load on PostgreSQL
+* Less suitable for real-time alerts
+* Simpler to deploy
+* Better for large analytical batch jobs
+
+**Conclusion:**
+
+* **Kafka + Debezium** is superior for real-time, high-scale fraud detection
+* **Spark JDBC** is better suited for offline analytics and batch processing
