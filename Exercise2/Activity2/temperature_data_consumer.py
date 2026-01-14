@@ -42,6 +42,8 @@ with psycopg.connect(
                     (ten_minutes_ago,)
                 )
                 result = cursor.fetchone()
+                assert result is not None
+
                 avg_temp = result[0] if result[0] is not None else None
 
                 if avg_temp is not None:
